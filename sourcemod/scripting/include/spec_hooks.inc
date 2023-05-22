@@ -26,7 +26,7 @@ enum
  * @param client            Observer client index.
  * @param target            Target client index.
  *
- * @return                	True on success, false otherwise.
+ * @return                  True on success, false otherwise.
  * @error                   Invalid client/target index, or client/target is not in-game.
  */
 native bool SpecHooks_SetObserverTarget(int client, int target);
@@ -36,7 +36,7 @@ native bool SpecHooks_SetObserverTarget(int client, int target);
  *
  * @param client            Observer client index.
  *
- * @return                	Target client index, or -1 if the client is not an observer.
+ * @return                  Target client index, or -1 if the client is not an observer.
  * @error                   Invalid client index, or client is not in-game.
  */
 native int SpecHooks_GetObserverTarget(int client);
@@ -47,7 +47,7 @@ native int SpecHooks_GetObserverTarget(int client);
  * @param client            Observer client index.
  * @param mode            	Desired spectate mode. See the enum above.
  *
- * @return                	True on success, false otherwise.
+ * @return                  True on success, false otherwise.
  * @error                   Invalid client index, client is not in-game, or an invalid spectate mode was specified.
  */
 native bool SpecHooks_SetObserverMode(int client, int mode);
@@ -57,7 +57,7 @@ native bool SpecHooks_SetObserverMode(int client, int mode);
  *
  * @param client            Observer client index.
  *
- * @return                	Spectate mode. See the enum above.
+ * @return                  Spectate mode. See the enum above.
  * @error                   Invalid client index or client is not in-game.
  */
 native int SpecHooks_GetObserverMode(int client);
@@ -68,7 +68,7 @@ native int SpecHooks_GetObserverMode(int client);
  * @param client            Observer client index.
  * @param target            Target client index.
  *
- * @return                	True if the target is valid for client to spectate, false otherwise.
+ * @return                  True if the target is valid for client to spectate, false otherwise.
  * @error                   Invalid client/target index, or client/target is not in-game.
  */
 native bool SpecHooks_IsValidObserverTarget(int client, int target);
@@ -82,7 +82,7 @@ native bool SpecHooks_IsValidObserverTarget(int client, int target);
  * @param client            Observer client index.
  * @param target            Target to perform checks on.
  *
- * @return             	 	An Action value. Returning Plugin_Handled bypasses the game function call.
+ * @return                  An Action value. Returning Plugin_Handled bypasses the game function call.
  */
 forward Action SpecHooks_OnValidObserverTarget(int client, int target);
 
