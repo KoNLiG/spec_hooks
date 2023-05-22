@@ -45,7 +45,7 @@ native int SpecHooks_GetObserverTarget(int client);
  * Sets the view mode for an observer.
  *
  * @param client            Observer client index.
- * @param mode            	Desired spectate mode. See the enum above.
+ * @param mode              Desired spectate mode. See the enum above.
  *
  * @return                  True on success, false otherwise.
  * @error                   Invalid client index, client is not in-game, or an invalid spectate mode was specified.
