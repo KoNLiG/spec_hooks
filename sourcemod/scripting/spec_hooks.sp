@@ -31,11 +31,6 @@ enum struct Player
     {
         this.last_observer_target = SDK_GetObserverTarget(this.index);
     }
-
-    void UpdateObserverMode()
-    {
-        this.last_observer_target = SDK_GetObserverTarget(this.index);
-    }
 }
 
 Player g_Players[MAXPLAYERS + 1];

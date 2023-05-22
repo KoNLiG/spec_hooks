@@ -200,7 +200,10 @@ MRESReturn Detour_OnSetObserverModePre(int pThis, DHookReturn hReturn, DHookPara
 {
     int mode = hParams.Get(1);
 
-    Action ret = Call_OnObserverModeChange(pThis, mode, SDK_GetObserverMode(pThis));
+    int last_mode = SDK_GetObserverMode(pThis);
+    Action ret = Call_OnObserverModeChange(pThis, mode, last_mode);
+
+    g_Players[pThis].last_observer_mode = last_mode;
 
     // Forward wants to stop this function from running.
     if (ret >= Plugin_Handled)
