@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <dhooks>
+#include <anymap>
 #include <spec_hooks>
 
 #pragma semicolon 1
@@ -7,8 +8,21 @@
 
 enum struct Player
 {
+    // Only set to 'true' upon the call of 'OnClientPostAdminCheck'.
+    // This var determines whether we can execute forwards for this player,
+    // executing spec forwards too early can leak to unknown server crashes.
+    bool initialized;
+
     // This player slot index.
     int index;
+
+    // Cached player userid.
+    int userid;
+
+    // This property exists to avoid an infinite loop when
+    // third party plugins override an observer target.
+    // Stores a client index.
+    int queued_observer_target;
 
     // Last observer client index.
     int last_observer_target;
@@ -18,11 +32,16 @@ enum struct Player
     void Init(int client)
     {
         this.index = client;
+        this.userid = GetClientUserId(client);
         this.last_observer_target = -1;
     }
 
     void Close()
     {
+        this.initialized = false;
+        this.index = 0;
+        this.userid = 0;
+        this.queued_observer_target = 0;
         this.last_observer_target = 0;
         this.last_observer_mode = 0;
     }
@@ -85,6 +104,11 @@ public void OnClientPutInServer(int client)
     g_Players[client].Init(client);
 }
 
+public void OnClientPostAdminCheck(int client)
+{
+    g_Players[client].initialized = true;
+}
+
 public void OnClientDisconnect(int client)
 {
     g_Players[client].Close();
@@ -97,6 +121,7 @@ void Lateload()
         if (IsClientInGame(current_client))
         {
             OnClientPutInServer(current_client);
+            OnClientPostAdminCheck(current_client);
         }
     }
 }

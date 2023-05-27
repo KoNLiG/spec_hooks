@@ -19,7 +19,6 @@ Handle g_IsValidObserverTarget;
 // Dynamic Detour handles.
 DynamicDetour g_SetObserverTargetDetour;
 DynamicDetour g_SetObserverModeDetour;
-DynamicDetour g_IsValidObserverTargetDetour;
 
 void InitializeSDK()
 {
@@ -142,37 +141,98 @@ void CreateDetourHooks(GameData gamedata)
     {
         SetFailState("Failed to detour 'CBasePlayer::SetObserverMode' post.");
     }
-
-    // Hook CCSPlayer::IsValidObserverTarget.
-    if (!(g_IsValidObserverTargetDetour = new DynamicDetour(Address_Null, CallConv_THISCALL, ReturnType_Bool, ThisPointer_CBaseEntity)))
-    {
-        SetFailState("Failed to setup detour for 'CCSPlayer::IsValidObserverTarget'");
-    }
-
-    if (!g_IsValidObserverTargetDetour.SetFromConf(gamedata, SDKConf_Signature, "CCSPlayer::IsValidObserverTarget"))
-    {
-        SetFailState("Failed to load 'CCSPlayer::IsValidObserverTarget' signature from gamedata");
-    }
-
-    // Add parameters
-    g_IsValidObserverTargetDetour.AddParam(HookParamType_CBaseEntity); // CBaseEntity* target
-
-    if (!g_IsValidObserverTargetDetour.Enable(Hook_Pre, Detour_OnIsValidObserverTarget))
-    {
-        SetFailState("Failed to detour 'CCSPlayer::IsValidObserverTarget'");
-    }
 }
 
 // Use the pre call of 'CCSPlayer::SetObserverTarget' in order to store
 // the last observer target of the observer.
 MRESReturn Detour_OnSetObserverTargetPre(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
+    if (!g_Players[pThis].initialized)
+    {
+        return MRES_Ignored;
+    }
+
     g_Players[pThis].UpdateObserverTarget();
+
+    // *CBaseEntity is null.
+    if (hParams.IsNull(1))
+    {
+        return MRES_Ignored;
+    }
+
+    int target = hParams.Get(1);
+    if (target == -1)
+    {
+        // Couldn't get the target CBaseEntity index.
+        return MRES_Ignored;
+    }
+
+    // Stop an infinite loop! (Frame_OverrideObserverTarget)
+    if (g_Players[pThis].queued_observer_target == target)
+    {
+        g_Players[pThis].queued_observer_target = 0;
+        return MRES_Ignored;
+    }
+
+    // The client hasn't changed their actual observer target, but rather their observer mode.
+    if (target == g_Players[pThis].last_observer_target)
+    {
+        return MRES_Ignored;
+    }
+
+    int override_target = target;
+    if (Call_OnObserverTargetChange(pThis, override_target, g_Players[pThis].last_observer_target) >= Plugin_Handled)
+    {
+        // Block the function according to the forward return.
+        hReturn.Value = false;
+        return MRES_Supercede;
+    }
+
+    if (override_target != target)
+    {
+        g_Players[pThis].queued_observer_target = override_target;
+
+        DataPack dp = new DataPack();
+        dp.WriteCell(g_Players[pThis].userid);
+        dp.WriteCell(g_Players[override_target].userid);
+        RequestFrame(Frame_OverrideObserverTarget, dp);
+
+        hReturn.Value = false;
+        return MRES_Supercede;
+    }
+
     return MRES_Ignored;
+}
+
+void Frame_OverrideObserverTarget(DataPack dp)
+{
+    dp.Reset();
+
+    int observer_userid = dp.ReadCell(), observer_target_userid = dp.ReadCell();
+    dp.Close();
+
+    int observer = GetClientOfUserId(observer_userid);
+    if (!observer)
+    {
+        return;
+    }
+
+    int observer_target = GetClientOfUserId(observer_target_userid);
+    if (!observer_target)
+    {
+        return;
+    }
+
+    SDK_SetObserverTarget(observer, observer_target);
 }
 
 MRESReturn Detour_OnSetObserverTargetPost(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
+    if (!g_Players[pThis].initialized)
+    {
+        return MRES_Ignored;
+    }
+
     // The specified observer target is invalid.
     if (!hReturn.Value)
     {
@@ -192,12 +252,17 @@ MRESReturn Detour_OnSetObserverTargetPost(int pThis, DHookReturn hReturn, DHookP
         return MRES_Ignored;
     }
 
-    Call_OnObserverTargetChange(pThis, target, g_Players[pThis].last_observer_target);
+    Call_OnObserverTargetChangePost(pThis, target, g_Players[pThis].last_observer_target);
     return MRES_Ignored;
 }
 
 MRESReturn Detour_OnSetObserverModePre(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
+    if (!g_Players[pThis].initialized)
+    {
+        return MRES_Ignored;
+    }
+
     int mode = hParams.Get(1);
 
     int last_mode = SDK_GetObserverMode(pThis);
@@ -224,24 +289,12 @@ MRESReturn Detour_OnSetObserverModePre(int pThis, DHookReturn hReturn, DHookPara
 
 MRESReturn Detour_OnSetObserverModePost(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
-    Call_OnObserverModeChangePost(pThis, hParams.Get(1), SDK_GetObserverMode(pThis));
-    return MRES_Ignored;
-}
-
-MRESReturn Detour_OnIsValidObserverTarget(int pThis, DHookReturn hReturn, DHookParam hParams)
-{
-    // Target 'CBaseEntity' pointer isn't available.
-    if (hParams.IsNull(1))
+    if (!g_Players[pThis].initialized)
     {
         return MRES_Ignored;
     }
 
-    if (Call_OnValidObserverTarget(pThis, hParams.Get(1)) >= Plugin_Handled)
-    {
-        hReturn.Value = false;
-        return MRES_Supercede;
-    }
-
+    Call_OnObserverModeChangePost(pThis, hParams.Get(1), SDK_GetObserverMode(pThis));
     return MRES_Ignored;
 }
 

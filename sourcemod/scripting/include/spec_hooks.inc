@@ -74,28 +74,27 @@ native int SpecHooks_GetObserverMode(int client);
 native bool SpecHooks_IsValidObserverTarget(int client, int target);
 
 /**
- * Called when the game is performing validation checks between an observer and target.
- *
- * Note: this forward is called for each and every frame, therefore you should avoid
- * doing expensive computations or declaring large local arrays.
+ * Called after a client has changed their 'm_hObserverTarget' value. (CBasePlayer::SetObserverTarget)
  *
  * @param client            Observer client index.
- * @param target            Target to perform checks on.
- *
- * @return                  An Action value. Returning Plugin_Handled bypasses the game function call.
+ * @param target            New target that we're currently spectating. (By reference)
+ * @param last_target       Old target that we were spectating.
+
+ * @return                  An Action value.
+ *                          Returning >= than Plugin_Handled bypasses the post hook as well as the game function.
  */
-forward Action SpecHooks_OnValidObserverTarget(int client, int target);
+forward Action SpecHooks_OnObserverTargetChange(int client, int &target, int last_target);
 
 /**
  * Called after a client has changed their 'm_hObserverTarget' value. (CBasePlayer::SetObserverTarget)
  *
- * Note: To filter out certain targets from being spectateable, use 'SpecHooks_OnValidObserverTarget'.
+ * Note: To filter out certain targets from being spectateable, use 'SpecHooks_OnObserverTargetChange'.
  *
  * @param client            Observer client index.
  * @param target            New target that we're currently spectating.
  * @param last_target       Old target that we were spectating.
  */
-forward void SpecHooks_OnObserverTargetChange(int client, int target, int last_target);
+forward void SpecHooks_OnObserverTargetChangePost(int client, int target, int last_target);
 
 /**
  * Called before a client has changed their 'm_hObserverMode' value. (CBasePlayer::SetObserverMode)

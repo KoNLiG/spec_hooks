@@ -8,8 +8,8 @@
 #endif
 
 // Global forward handles.
-GlobalForward g_OnValidObserverTarget;
 GlobalForward g_OnObserverTargetChange;
+GlobalForward g_OnObserverTargetChangePost;
 GlobalForward g_OnObserverModeChange;
 GlobalForward g_OnObserverModeChangePost;
 
@@ -116,15 +116,16 @@ any Native_IsValidObserverTarget(Handle plugin, int numParams)
 // Forwards.
 void CreateForwards()
 {
-    g_OnValidObserverTarget = new GlobalForward(
-        "SpecHooks_OnValidObserverTarget",
-        ET_Hook,  // Mid-stops allowed.
-        Param_Cell,  // int client
-        Param_Cell // int target
-        );
-
     g_OnObserverTargetChange = new GlobalForward(
         "SpecHooks_OnObserverTargetChange",
+        ET_Hook,  // Mid-stops allowed.
+        Param_Cell,  // int client
+        Param_CellByRef,  // int &target
+        Param_Cell // int last_target
+        );
+
+    g_OnObserverTargetChangePost = new GlobalForward(
+        "SpecHooks_OnObserverTargetChangePost",
         ET_Ignore,  // Always return 0.
         Param_Cell,  // int client
         Param_Cell,  // int target
@@ -148,21 +149,22 @@ void CreateForwards()
         );
 }
 
-Action Call_OnValidObserverTarget(int client, int target)
+Action Call_OnObserverTargetChange(int client, int &target, int last_target)
 {
     Action result;
 
-    Call_StartForward(g_OnValidObserverTarget);
+    Call_StartForward(g_OnObserverTargetChange);
     Call_PushCell(client);
-    Call_PushCell(target);
+    Call_PushCellRef(target);
+    Call_PushCell(last_target);
     Call_Finish(result);
 
     return result;
 }
 
-void Call_OnObserverTargetChange(int client, int target, int last_target)
+void Call_OnObserverTargetChangePost(int client, int target, int last_target)
 {
-    Call_StartForward(g_OnObserverTargetChange);
+    Call_StartForward(g_OnObserverTargetChangePost);
     Call_PushCell(client);
     Call_PushCell(target);
     Call_PushCell(last_target);
